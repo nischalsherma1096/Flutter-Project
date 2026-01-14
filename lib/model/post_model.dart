@@ -1,8 +1,8 @@
 class UserModel {
   final String id;
-  final String name;
+  String name;
   final String? avatar;
-  final String? bio;
+  String? bio;
   final int followers;
   final int following;
   final String? profilePicture;

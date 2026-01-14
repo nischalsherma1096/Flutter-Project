@@ -46,12 +46,29 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         _comments = (widget.post['comments'] as List)
             .map((comment) => CommentModel.fromJson(comment))
             .toList();
+        _updateCommentNames(); // Update names on init
       }
     } else {
       _isLiked = widget.post.isLiked ?? false;
       _likeCount = widget.post.likes ?? 0;
       _editController.text = widget.post.content ?? '';
       _comments = widget.post.comments ?? [];
+      _updateCommentNames(); // Update names on init
+    }
+  }
+
+  void _updateCommentNames() {
+    // Update all current user comments with current name
+    final currentUserName = _storage.read('user_name') ?? 'You';
+    final currentUserBio = _storage.read('user_bio') ?? '';
+    final currentProfilePicture = _storage.read('my_profile_picture');
+    
+    for (var comment in _comments) {
+      if (comment.user.id == 'current_user') {
+        comment.user.name = currentUserName;
+        comment.user.bio = currentUserBio;
+        comment.user.localProfilePicture = currentProfilePicture;
+      }
     }
   }
 
@@ -253,18 +270,40 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     return null;
   }
 
+  // Helper method to get display name for a user
+  String _getDisplayName(UserModel user) {
+    if (user.id == 'current_user') {
+      return _storage.read('user_name') ?? 'You';
+    }
+    return user.name;
+  }
+
   String _getUserName() {
     if (widget.isLocalPost) {
+      final postUser = widget.post['user'];
+      if (postUser != null && postUser['id'] == 'current_user') {
+        return _storage.read('user_name') ?? 'You';
+      }
       return widget.post['user']?['name'] ?? 'You';
     } else {
+      if (widget.post.user?.id == 'current_user') {
+        return _storage.read('user_name') ?? 'You';
+      }
       return widget.post.user?.name ?? 'Unknown';
     }
   }
 
   String _getUserBio() {
     if (widget.isLocalPost) {
+      final postUser = widget.post['user'];
+      if (postUser != null && postUser['id'] == 'current_user') {
+        return _storage.read('user_bio') ?? '';
+      }
       return widget.post['user']?['bio'] ?? '';
     } else {
+      if (widget.post.user?.id == 'current_user') {
+        return _storage.read('user_bio') ?? '';
+      }
       return widget.post.user?.bio ?? '';
     }
   }
@@ -336,12 +375,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           onCommentAdded: (newCount) {
             setState(() {
               if (!widget.isLocalPost) {
+                final currentUserName = _storage.read('user_name') ?? 'You';
+                final currentUserBio = _storage.read('user_bio') ?? '';
+                final currentProfilePicture = _storage.read('my_profile_picture');
+                
                 _comments = [
                   CommentModel(
                     id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
                     user: UserModel(
                       id: 'current_user',
-                      name: _storage.read('user_name') ?? 'You',
+                      name: currentUserName,
+                      bio: currentUserBio,
+                      localProfilePicture: currentProfilePicture,
                     ),
                     text: 'New comment',
                   ),
@@ -369,6 +414,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           _comments = (post['comments'] ?? [])
               .map((comment) => CommentModel.fromJson(comment))
               .toList();
+          _updateCommentNames(); // Update names when loading
         });
         break;
       }
@@ -392,8 +438,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 
   bool _isCurrentUser() {
-    final currentUserName = _storage.read('user_name') ?? 'You';
     final postUserName = _getUserName();
+    final currentUserName = _storage.read('user_name') ?? 'You';
     return postUserName == currentUserName || postUserName == 'You';
   }
 
@@ -687,13 +733,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Widget _buildCommentPreview(CommentModel comment) {
     final profilePicture = _getProfilePictureForUser(comment.user);
     final isCurrentUserComment = comment.user.id == 'current_user';
+    final displayName = _getDisplayName(comment.user);
     
     return Padding(
       padding: EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildProfileIcon(comment.user.name, size: 30, profilePicture: profilePicture),
+          _buildProfileIcon(displayName, size: 30, profilePicture: profilePicture),
           SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -702,7 +749,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 Row(
                   children: [
                     Text(
-                      comment.user.name,
+                      displayName,
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                     if (isCurrentUserComment)

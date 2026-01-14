@@ -91,21 +91,37 @@ class _CommentsScreenState extends State<CommentsScreen> {
   void initState() {
     super.initState();
     _comments = widget.comments;
+    _updateCommentNames(); // Update names on init
+  }
+
+  void _updateCommentNames() {
+    // Update all current user comments with current name
+    final currentUserName = _storage.read('user_name') ?? 'You';
+    final currentUserBio = _storage.read('user_bio') ?? '';
+    final currentProfilePicture = _storage.read('my_profile_picture');
+    
+    for (var comment in _comments) {
+      if (comment.user.id == 'current_user') {
+        comment.user.name = currentUserName;
+        comment.user.bio = currentUserBio;
+        comment.user.localProfilePicture = currentProfilePicture;
+      }
+    }
   }
 
   void _addComment() async {
     if (_commentController.text.isNotEmpty) {
-      final userName = _storage.read('user_name') ?? 'You';
-      final userBio = _storage.read('user_bio') ?? 'Flutter Developer & Social Media Enthusiast';
-      final profilePicture = _storage.read('my_profile_picture');
+      final currentUserName = _storage.read('user_name') ?? 'You';
+      final currentUserBio = _storage.read('user_bio') ?? '';
+      final currentProfilePicture = _storage.read('my_profile_picture');
       
       final newComment = CommentModel(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         user: UserModel(
           id: 'current_user', 
-          name: userName,
-          bio: userBio,
-          localProfilePicture: profilePicture,
+          name: currentUserName,
+          bio: currentUserBio,
+          localProfilePicture: currentProfilePicture,
         ),
         text: _commentController.text,
       );
@@ -195,9 +211,18 @@ class _CommentsScreenState extends State<CommentsScreen> {
 
     final commentIndex = _comments.indexWhere((c) => c.id == commentId);
     if (commentIndex != -1) {
+      final currentUserName = _storage.read('user_name') ?? 'You';
+      final currentUserBio = _storage.read('user_bio') ?? '';
+      final currentProfilePicture = _storage.read('my_profile_picture');
+      
       final updatedComment = CommentModel(
         id: _comments[commentIndex].id,
-        user: _comments[commentIndex].user,
+        user: UserModel(
+          id: 'current_user',
+          name: currentUserName,
+          bio: currentUserBio,
+          localProfilePicture: currentProfilePicture,
+        ),
         text: _editCommentController.text,
       );
       
@@ -279,6 +304,14 @@ class _CommentsScreenState extends State<CommentsScreen> {
     return null;
   }
 
+  // Helper method to get display name for a user
+  String _getDisplayName(UserModel user) {
+    if (user.id == 'current_user') {
+      return _storage.read('user_name') ?? 'You';
+    }
+    return user.name;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -300,13 +333,14 @@ class _CommentsScreenState extends State<CommentsScreen> {
                 final profilePicture = _getProfilePictureForUser(comment.user);
                 final isCurrentUser = comment.user.id == 'current_user';
                 final isEditing = _editingCommentId == comment.id;
+                final displayName = _getDisplayName(comment.user);
                 
                 return Container(
                   margin: EdgeInsets.only(bottom: 16),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildProfileIcon(comment.user.name, size: 40, profilePicture: profilePicture),
+                      _buildProfileIcon(displayName, size: 40, profilePicture: profilePicture),
                       SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -325,7 +359,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(comment.user.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                      Text(displayName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                                       if (isCurrentUser && !isEditing)
                                         Row(
                                           children: [
@@ -372,7 +406,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
                                                 padding: EdgeInsets.symmetric(horizontal: 16),
                                                 backgroundColor: Colors.transparent,
                                                 elevation: 0, 
-                                                 foregroundColor: Colors.blue,
+                                                foregroundColor: Colors.blue,
                                               ),
                                             ),
                                           ],
