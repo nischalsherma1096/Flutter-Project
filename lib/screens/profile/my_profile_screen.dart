@@ -42,27 +42,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     });
   }
 
-  void _saveUserInfo() {
-    final newName = _nameController.text.trim();
-    final newBio = _bioController.text.trim();
-    
-    _storage.write('user_name', newName);
-    _storage.write('user_bio', newBio);
-    setState(() {
-      _isEditingName = false;
-      _isEditingBio = false;
-    });
-    
-    _updatePostsWithNewUserInfo();
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Profile updated successfully!'),
-        backgroundColor: Colors.green,
-      ),
-    );
-  }
-
   void _updatePostsWithNewUserInfo() {
     final posts = _storage.read('my_posts') ?? [];
     final updatedPosts = List.from(posts);
@@ -71,7 +50,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     final profilePicture = _storage.read('my_profile_picture');
     
     for (int i = 0; i < updatedPosts.length; i++) {
-      // Update post user info
+      // Update post author info
       updatedPosts[i]['user']['name'] = newName;
       if (newBio.isNotEmpty) {
         updatedPosts[i]['user']['bio'] = newBio;
@@ -80,7 +59,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         updatedPosts[i]['user']['localProfilePicture'] = profilePicture;
       }
       
-      
+      // Update comments by current user
       if (updatedPosts[i]['comments'] != null) {
         final comments = List.from(updatedPosts[i]['comments']);
         for (int j = 0; j < comments.length; j++) {
@@ -280,10 +259,40 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           border: InputBorder.none,
           suffixIcon: IconButton(
             icon: Icon(Icons.check, color: Colors.green),
-            onPressed: _saveUserInfo,
+            onPressed: () {
+              // Save only name
+              final newName = _nameController.text.trim();
+              if (newName.isNotEmpty) {
+                _storage.write('user_name', newName);
+                setState(() {
+                  _isEditingName = false;
+                });
+                _updatePostsWithNewUserInfo();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Name updated!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
           ),
         ),
-        onSubmitted: (value) => _saveUserInfo(),
+        onSubmitted: (value) {
+          if (value.trim().isNotEmpty) {
+            _storage.write('user_name', value.trim());
+            setState(() {
+              _isEditingName = false;
+            });
+            _updatePostsWithNewUserInfo();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Name updated!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        },
       );
     } else {
       return GestureDetector(
@@ -319,10 +328,36 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           border: InputBorder.none,
           suffixIcon: IconButton(
             icon: Icon(Icons.check, color: Colors.green),
-            onPressed: _saveUserInfo,
+            onPressed: () {
+              // Save only bio
+              final newBio = _bioController.text.trim();
+              _storage.write('user_bio', newBio);
+              setState(() {
+                _isEditingBio = false;
+              });
+              _updatePostsWithNewUserInfo();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Bio updated!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
           ),
         ),
-        onSubmitted: (value) => _saveUserInfo(),
+        onSubmitted: (value) {
+          _storage.write('user_bio', value.trim());
+          setState(() {
+            _isEditingBio = false;
+          });
+          _updatePostsWithNewUserInfo();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Bio updated!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        },
       );
     } else {
       return GestureDetector(
@@ -395,7 +430,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                     ],
                   ),
                   SizedBox(height: 20),
-                  // Single "New Post" button filling the entire width
+                  
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(

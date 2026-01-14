@@ -22,8 +22,10 @@ class CommentsScreen extends StatefulWidget {
 
 class _CommentsScreenState extends State<CommentsScreen> {
   final TextEditingController _commentController = TextEditingController();
+  final TextEditingController _editCommentController = TextEditingController();
   List<CommentModel> _comments = [];
   final GetStorage _storage = GetStorage();
+  String? _editingCommentId;
 
   Widget _buildProfileIcon(String name, {double size = 40, Uint8List? profilePicture}) {
     if (profilePicture != null) {
@@ -114,7 +116,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
       });
 
       if (widget.isLocalPost) {
-        await _updateLocalPostComment(newComment);
+        await _updateLocalPostComment(newComment, isNew: true);
       }
 
       if (widget.onCommentAdded != null) {
@@ -123,19 +125,36 @@ class _CommentsScreenState extends State<CommentsScreen> {
     }
   }
 
-  Future<void> _updateLocalPostComment(CommentModel newComment) async {
+  Future<void> _updateLocalPostComment(CommentModel comment, {bool isNew = false, bool isDelete = false}) async {
     try {
       final posts = _storage.read('my_posts') ?? [];
       final updatedPosts = List.from(posts);
       
       for (int i = 0; i < updatedPosts.length; i++) {
         if (updatedPosts[i]['id'] == widget.postId) {
-          final commentJson = newComment.toJson();
+          final commentJson = comment.toJson();
           
-          if (updatedPosts[i]['comments'] == null) {
-            updatedPosts[i]['comments'] = [commentJson];
+          if (isDelete) {
+            // Delete comment
+            final comments = List.from(updatedPosts[i]['comments'] ?? []);
+            updatedPosts[i]['comments'] = comments.where((c) => c['id'] != comment.id).toList();
+          } else if (isNew) {
+            // Add new comment
+            if (updatedPosts[i]['comments'] == null) {
+              updatedPosts[i]['comments'] = [commentJson];
+            } else {
+              updatedPosts[i]['comments'].insert(0, commentJson);
+            }
           } else {
-            updatedPosts[i]['comments'].insert(0, commentJson);
+            // Update existing comment
+            final comments = List.from(updatedPosts[i]['comments'] ?? []);
+            for (int j = 0; j < comments.length; j++) {
+              if (comments[j]['id'] == comment.id) {
+                comments[j] = commentJson;
+                break;
+              }
+            }
+            updatedPosts[i]['comments'] = comments;
           }
           break;
         }
@@ -143,15 +162,107 @@ class _CommentsScreenState extends State<CommentsScreen> {
       
       await _storage.write('my_posts', updatedPosts);
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Comment added!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (!isDelete) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isNew ? 'Comment added!' : 'Comment updated!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
       print('Error updating local post comment: $e');
     }
+  }
+
+  void _startEditingComment(CommentModel comment) {
+    setState(() {
+      _editingCommentId = comment.id;
+      _editCommentController.text = comment.text;
+    });
+  }
+
+  void _saveEditedComment(String commentId) async {
+    if (_editCommentController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Comment cannot be empty!'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final commentIndex = _comments.indexWhere((c) => c.id == commentId);
+    if (commentIndex != -1) {
+      final updatedComment = CommentModel(
+        id: _comments[commentIndex].id,
+        user: _comments[commentIndex].user,
+        text: _editCommentController.text,
+      );
+      
+      setState(() {
+        _comments[commentIndex] = updatedComment;
+        _editingCommentId = null;
+        _editCommentController.clear();
+      });
+
+      if (widget.isLocalPost) {
+        await _updateLocalPostComment(updatedComment, isNew: false);
+      }
+    }
+  }
+
+  void _deleteComment(String commentId) async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Comment'),
+        content: Text('Are you sure you want to delete this comment?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final commentIndex = _comments.indexWhere((c) => c.id == commentId);
+              if (commentIndex != -1) {
+                final commentToDelete = _comments[commentIndex];
+                
+                setState(() {
+                  _comments.removeAt(commentIndex);
+                });
+
+                if (widget.isLocalPost) {
+                  await _updateLocalPostComment(commentToDelete, isDelete: true);
+                }
+
+                if (widget.onCommentAdded != null) {
+                  widget.onCommentAdded!(_comments.length);
+                }
+
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Comment deleted!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+            child: Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _cancelEditing() {
+    setState(() {
+      _editingCommentId = null;
+      _editCommentController.clear();
+    });
   }
 
   Uint8List? _getProfilePictureForUser(UserModel user) {
@@ -187,6 +298,8 @@ class _CommentsScreenState extends State<CommentsScreen> {
               itemBuilder: (context, index) {
                 final comment = _comments[index];
                 final profilePicture = _getProfilePictureForUser(comment.user);
+                final isCurrentUser = comment.user.id == 'current_user';
+                final isEditing = _editingCommentId == comment.id;
                 
                 return Container(
                   margin: EdgeInsets.only(bottom: 16),
@@ -201,13 +314,73 @@ class _CommentsScreenState extends State<CommentsScreen> {
                           children: [
                             Container(
                               padding: EdgeInsets.all(12),
-                              decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[100], 
+                                borderRadius: BorderRadius.circular(12),
+                                border: isEditing ? Border.all(color: Colors.blue, width: 1) : null,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(comment.user.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(comment.user.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                      if (isCurrentUser && !isEditing)
+                                        Row(
+                                          children: [
+                                            IconButton(
+                                              icon: Icon(Icons.edit, size: 16, color: Colors.blue),
+                                              onPressed: () => _startEditingComment(comment),
+                                              padding: EdgeInsets.zero,
+                                            ),
+                                            IconButton(
+                                              icon: Icon(Icons.delete, size: 16, color: Colors.red),
+                                              onPressed: () => _deleteComment(comment.id),
+                                              padding: EdgeInsets.zero,
+                                            ),
+                                          ],
+                                        ),
+                                    ],
+                                  ),
                                   SizedBox(height: 4),
-                                  Text(comment.text),
+                                  if (isEditing)
+                                    Column(
+                                      children: [
+                                        TextField(
+                                          controller: _editCommentController,
+                                          maxLines: 3,
+                                          decoration: InputDecoration(
+                                            hintText: 'Edit comment...',
+                                            border: InputBorder.none,
+                                            contentPadding: EdgeInsets.zero,
+                                          ),
+                                        ),
+                                        SizedBox(height: 8),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.end,
+                                          children: [
+                                            TextButton(
+                                              onPressed: _cancelEditing,
+                                              child: Text('Cancel', style: TextStyle(color: Colors.red)),
+                                            ),
+                                            SizedBox(width: 8),
+                                            ElevatedButton(
+                                              onPressed: () => _saveEditedComment(comment.id),
+                                              child: Text('Save'),
+                                              style: ElevatedButton.styleFrom(
+                                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                                backgroundColor: Colors.transparent,
+                                                elevation: 0, 
+                                                 foregroundColor: Colors.blue,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    )
+                                  else
+                                    Text(comment.text),
                                 ],
                               ),
                             ),

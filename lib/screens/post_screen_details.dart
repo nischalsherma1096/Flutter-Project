@@ -443,7 +443,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            
+            // Post Header
             Padding(
               padding: EdgeInsets.all(16),
               child: Row(
@@ -491,7 +491,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             
             Divider(height: 1),
             
-            
+            // Post Content
             Padding(
               padding: EdgeInsets.all(16),
               child: Column(
@@ -549,7 +549,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ),
             ),
             
-            
+            // Post Image (if exists)
             if (imageWidget != null && _hasImage())
               Container(
                 width: double.infinity,
@@ -560,18 +560,16 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 child: imageWidget,
               ),
             
-            
+            // Post Stats (NON-CLICKABLE - just for display)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: Icon(
-                      _isLiked ? Icons.favorite : Icons.favorite_border,
-                      color: _isLiked ? Colors.red : Colors.grey[600],
-                      size: 24,
-                    ),
-                    onPressed: _toggleLike,
+                  // Just icon, no button
+                  Icon(
+                    _isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: _isLiked ? Colors.red : Colors.grey[600],
+                    size: 24,
                   ),
                   SizedBox(width: 6),
                   Text(
@@ -594,7 +592,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             
             Divider(height: 1),
             
-            
+            // Action Buttons (CLICKABLE - for functionality)
             if (!_isEditing)
               Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
@@ -623,7 +621,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             
             if (!_isEditing) Divider(height: 1),
             
-            
+            // Comments Preview
             if (!_isEditing)
               Padding(
                 padding: EdgeInsets.all(16),

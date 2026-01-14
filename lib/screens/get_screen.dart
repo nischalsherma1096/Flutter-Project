@@ -9,6 +9,7 @@ import 'profile/my_profile_screen.dart';
 import 'comments/comments_screen.dart';
 import 'post_screen.dart';
 import 'post_screen_details.dart';
+import 'search/search_screen.dart'; 
 
 class GetScreen extends StatefulWidget {
   @override
@@ -310,7 +311,17 @@ class _GetScreenState extends State<GetScreen> {
             IconButton(icon: Icon(Icons.add_box_outlined, size: 28), onPressed: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => PostScreen()));
             }),
-            IconButton(icon: Icon(Icons.search, size: 28), onPressed: () {}),
+            IconButton(
+              icon: Icon(Icons.search, size: 28),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SearchScreen(allPosts: posts),
+                  ),
+                );
+              },
+            ),
             IconButton(icon: Icon(Icons.notifications_none, size: 28), onPressed: () {}),
           ],
         ),
