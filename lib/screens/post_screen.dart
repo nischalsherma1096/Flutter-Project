@@ -16,6 +16,55 @@ class _PostScreenState extends State<PostScreen> {
   Uint8List? _selectedImageBytes;
   bool _isUploading = false;
   final ImagePicker _picker = ImagePicker();
+  Uint8List? _profilePicture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfilePicture();
+  }
+
+  void _loadProfilePicture() {
+    final profileData = _storage.read('my_profile_picture');
+    if (profileData != null && profileData is String) {
+      try {
+        setState(() {
+          _profilePicture = base64Decode(profileData);
+        });
+      } catch (e) {
+        print('Error loading profile picture: $e');
+      }
+    }
+  }
+
+  Widget _buildProfileIcon() {
+    final userName = _storage.read('user_name') ?? 'You';
+    final colors = [Colors.blue, Colors.green, Colors.purple, Colors.orange, Colors.red];
+    final colorIndex = userName.hashCode % colors.length;
+    
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 2),
+        image: _profilePicture != null
+            ? DecorationImage(
+                image: MemoryImage(_profilePicture!),
+                fit: BoxFit.cover,
+              )
+            : null,
+        color: _profilePicture == null ? colors[colorIndex] : null,
+      ),
+      child: _profilePicture == null
+          ? Icon(
+              Icons.person,
+              color: Colors.white,
+              size: 20,
+            )
+          : null,
+    );
+  }
 
   Future<void> _pickImage() async {
     try {
@@ -257,13 +306,10 @@ class _PostScreenState extends State<PostScreen> {
       appBar: AppBar(
         leading: Padding(
           padding: EdgeInsets.only(left: 16),
-          child: CircleAvatar(
-            backgroundColor: Colors.grey[300]!,
-            child: Icon(Icons.person, color: Colors.grey[600]),
-          ),
+          child: _buildProfileIcon(),
         ),
         title: Text(
-          'POSTLY',
+          'Create Post',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         centerTitle: true,
@@ -272,7 +318,7 @@ class _PostScreenState extends State<PostScreen> {
             padding: EdgeInsets.only(right: 16),
             child: GestureDetector(
               onTap: () => Navigator.pop(context),
-              child: Icon(Icons.arrow_back),
+              child: Icon(Icons.close),
             ),
           ),
         ],

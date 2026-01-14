@@ -1,17 +1,15 @@
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:get_storage/get_storage.dart';
 import '../utils/post.api.dart';
 import '../model/post_model.dart';
 import 'profile/profile_screen.dart';
-import 'profile/my_profile_screen.dart';
 import 'comments/comments_screen.dart';
-import 'post_screen.dart';
 import 'post_screen_details.dart';
-import 'search/search_screen.dart'; 
-
 class GetScreen extends StatefulWidget {
+  final Function(List<PostModel>)? onPostsLoaded;
+  
+  GetScreen({this.onPostsLoaded});
+  
   @override
   _GetScreenState createState() => _GetScreenState();
 }
@@ -19,27 +17,11 @@ class GetScreen extends StatefulWidget {
 class _GetScreenState extends State<GetScreen> {
   List<PostModel> posts = [];
   bool isLoading = true;
-  final GetStorage _storage = GetStorage();
-  Uint8List? _myProfilePicture;
   
   @override
   void initState() {
     super.initState();
     fetchPosts();
-    _loadMyProfilePicture();
-  }
-
-  Future<void> _loadMyProfilePicture() async {
-    final profileData = _storage.read('my_profile_picture');
-    if (profileData != null && profileData is String) {
-      try {
-        setState(() {
-          _myProfilePicture = base64Decode(profileData);
-        });
-      } catch (e) {
-        print('Error loading profile picture: $e');
-      }
-    }
   }
 
   Future<void> fetchPosts() async {
@@ -49,21 +31,17 @@ class _GetScreenState extends State<GetScreen> {
         posts = fetchedPosts;
         isLoading = false;
       });
+      
+      // Notify parent about loaded posts
+      if (widget.onPostsLoaded != null) {
+        widget.onPostsLoaded!(posts);
+      }
     } catch (e) {
       print('Error: $e');
       setState(() {
         isLoading = false;
       });
     }
-  }
-
-  void _showMyProfile() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => MyProfileScreen()),
-    ).then((_) {
-      _loadMyProfilePicture();
-    });
   }
 
   void _toggleLike(int index) {
@@ -110,7 +88,7 @@ class _GetScreenState extends State<GetScreen> {
     });
   }
 
-  Widget _buildProfileIcon(String name, {double size = 40, bool isCurrentUser = false, Uint8List? profilePicture}) {
+  Widget _buildProfileIcon(String name, {double size = 40, Uint8List? profilePicture}) {
     final colors = [Colors.blue, Colors.green, Colors.purple, Colors.orange, Colors.red];
     final colorIndex = name.hashCode % colors.length;
     
@@ -119,7 +97,6 @@ class _GetScreenState extends State<GetScreen> {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: isCurrentUser ? Border.all(color: Colors.white, width: 2) : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -148,33 +125,6 @@ class _GetScreenState extends State<GetScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: Padding(
-          padding: EdgeInsets.only(left: 16),
-          child: GestureDetector(
-            onTap: _showMyProfile,
-            child: _buildProfileIcon(
-              _storage.read('user_name') ?? 'You',
-              size: 36,
-              isCurrentUser: true,
-              profilePicture: _myProfilePicture,
-            ),
-          ),
-        ),
-        title: Text('POSTLY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-        centerTitle: true,
-        actions: [
-          Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: IconButton(
-              icon: Icon(Icons.menu),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Menu coming soon!')));
-              },
-            ),
-          ),
-        ],
-      ),
       body: Column(
         children: [
           Container(height: 1, width: double.infinity, color: Colors.grey[300]),
@@ -300,31 +250,6 @@ class _GetScreenState extends State<GetScreen> {
                   ),
           ),
         ],
-      ),
-      bottomNavigationBar: Container(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(border: Border(top: BorderSide(color: Colors.grey[300]!))),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            IconButton(icon: Icon(Icons.home_outlined, size: 28), onPressed: () {}),
-            IconButton(icon: Icon(Icons.add_box_outlined, size: 28), onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => PostScreen()));
-            }),
-            IconButton(
-              icon: Icon(Icons.search, size: 28),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => SearchScreen(allPosts: posts),
-                  ),
-                );
-              },
-            ),
-            IconButton(icon: Icon(Icons.notifications_none, size: 28), onPressed: () {}),
-          ],
-        ),
       ),
     );
   }
