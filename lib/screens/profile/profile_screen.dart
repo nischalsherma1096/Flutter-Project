@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import '../../model/post_model.dart';
 import '../post_screen_details.dart';
@@ -42,7 +41,26 @@ class ProfileScreen extends StatelessWidget {
           'hasImage': true,
           'imageUrl': 'https://picsum.photos/id/1/500/500',
           'likes': 245,
-          'comments': [],
+          'comments': [
+            {
+              'id': 'c1',
+              'user': {
+                'id': '102', 
+                'name': 'Alice Smith',
+                'avatar': 'https://i.pravatar.cc/150?img=4',
+              },
+              'text': 'Amazing work! 👏',
+            },
+            {
+              'id': 'c2',
+              'user': {
+                'id': '103', 
+                'name': 'Mike Wilson',
+                'avatar': 'https://i.pravatar.cc/150?img=5',
+              },
+              'text': 'Where can I download it?',
+            },
+          ],
           'timestamp': DateTime.now().subtract(Duration(days: 2)).toIso8601String(),
           'user': {
             'id': '101',
@@ -58,7 +76,17 @@ class ProfileScreen extends StatelessWidget {
           'hasImage': true,
           'imageUrl': 'https://picsum.photos/id/20/500/500',
           'likes': 89,
-          'comments': [],
+          'comments': [
+            {
+              'id': 'c10',
+              'user': {
+                'id': '102', 
+                'name': 'Sarah Johnson',
+                'avatar': 'https://i.pravatar.cc/150?img=2',
+              },
+              'text': 'Love the design!',
+            },
+          ],
           'timestamp': DateTime.now().subtract(Duration(days: 5)).toIso8601String(),
           'user': {
             'id': '101',
@@ -77,7 +105,17 @@ class ProfileScreen extends StatelessWidget {
           'hasImage': true,
           'imageUrl': 'https://picsum.photos/id/2/500/500',
           'likes': 189,
-          'comments': [],
+          'comments': [
+            {
+              'id': 'c3',
+              'user': {
+                'id': '103', 
+                'name': 'Mike Wilson',
+                'avatar': 'https://i.pravatar.cc/150?img=3',
+              },
+              'text': 'Wish I was there!',
+            },
+          ],
           'timestamp': DateTime.now().subtract(Duration(days: 1)).toIso8601String(),
           'user': {
             'id': '102',
@@ -93,7 +131,17 @@ class ProfileScreen extends StatelessWidget {
           'hasImage': true,
           'imageUrl': 'https://picsum.photos/id/30/500/500',
           'likes': 120,
-          'comments': [],
+          'comments': [
+            {
+              'id': 'c11',
+              'user': {
+                'id': '101', 
+                'name': 'John Doe',
+                'avatar': 'https://i.pravatar.cc/150?img=1',
+              },
+              'text': 'Can\'t wait to see it!',
+            },
+          ],
           'timestamp': DateTime.now().subtract(Duration(days: 3)).toIso8601String(),
           'user': {
             'id': '102',
@@ -112,7 +160,26 @@ class ProfileScreen extends StatelessWidget {
           'hasImage': true,
           'imageUrl': 'https://picsum.photos/id/3/500/500',
           'likes': 423,
-          'comments': [],
+          'comments': [
+            {
+              'id': 'c4',
+              'user': {
+                'id': '101', 
+                'name': 'John Doe',
+                'avatar': 'https://i.pravatar.cc/150?img=1',
+              },
+              'text': 'Stunning shot!',
+            },
+            {
+              'id': 'c5',
+              'user': {
+                'id': '102', 
+                'name': 'Sarah Johnson',
+                'avatar': 'https://i.pravatar.cc/150?img=2',
+              },
+              'text': 'Love the composition!',
+            },
+          ],
           'timestamp': DateTime.now().subtract(Duration(days: 4)).toIso8601String(),
           'user': {
             'id': '103',
@@ -128,7 +195,17 @@ class ProfileScreen extends StatelessWidget {
           'hasImage': true,
           'imageUrl': 'https://picsum.photos/id/40/500/500',
           'likes': 256,
-          'comments': [],
+          'comments': [
+            {
+              'id': 'c12',
+              'user': {
+                'id': '101', 
+                'name': 'John Doe',
+                'avatar': 'https://i.pravatar.cc/150?img=1',
+              },
+              'text': 'Beautiful! Where was this taken?',
+            },
+          ],
           'timestamp': DateTime.now().subtract(Duration(days: 2)).toIso8601String(),
           'user': {
             'id': '103',
@@ -148,7 +225,17 @@ class ProfileScreen extends StatelessWidget {
         'hasImage': true,
         'imageUrl': 'https://picsum.photos/id/50/500/500',
         'likes': 50,
-        'comments': [],
+        'comments': [
+          {
+            'id': 'c13',
+            'user': {
+              'id': '101', 
+              'name': 'John Doe',
+              'avatar': 'https://i.pravatar.cc/150?img=1',
+            },
+            'text': 'Nice post!',
+          },
+        ],
         'timestamp': DateTime.now().subtract(Duration(days: 1)).toIso8601String(),
         'user': user.toJson(),
         'hashtags': ['#post', '#update'],
@@ -228,11 +315,24 @@ class ProfileScreen extends StatelessWidget {
                       final post = userPosts[index];
                       return GestureDetector(
                         onTap: () {
+                          // Convert the map to a PostModel object
+                          final postModel = PostModel(
+                            id: post['id'],
+                            user: UserModel.fromJson(post['user']),
+                            content: post['content'],
+                            imageUrl: post['imageUrl'],
+                            likes: post['likes'],
+                            comments: (post['comments'] as List)
+                                .map((comment) => CommentModel.fromJson(comment))
+                                .toList(),
+                            hashtags: List<String>.from(post['hashtags']),
+                          );
+                          
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => PostDetailScreen(
-                                post: post,
+                                post: postModel,
                                 isLocalPost: false,
                               ),
                             ),
