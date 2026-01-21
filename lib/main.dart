@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
-import 'screens/auth/login_screen.dart'; // Make sure this path is correct
+import 'screens/auth/login_screen.dart'; 
 import 'screens/main_navigation_screen.dart';
 
 void main() async {
@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: LoginWrapper(), // Change this line
+      home: LoginWrapper(), 
       debugShowCheckedModeBanner: false,
     );
   }

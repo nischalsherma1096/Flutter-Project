@@ -96,7 +96,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Full Name (Optional)
+                    
                     TextFormField(
                       controller: _fullNameController,
                       autocorrect: false,

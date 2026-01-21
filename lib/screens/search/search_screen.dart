@@ -147,7 +147,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   : null,
               contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             ),
-            // REMOVED: onChanged (no real-time search)
+            
             textInputAction: TextInputAction.search,
             onSubmitted: (value) {
               // This triggers when user presses "enter/search" on keyboard
