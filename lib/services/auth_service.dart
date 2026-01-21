@@ -249,12 +249,12 @@ class AuthService {
       final userId = DateTime.now().millisecondsSinceEpoch.toString();
       final newUser = {
         'id': userId,
-        'username': trimmedUsername, // Save trimmed username
-        'email': normalizedEmail, // Save as lowercase
-        'password': password, // In real app, hash this password!
+        'username': trimmedUsername, 
+        'email': normalizedEmail, 
+        'password': password,
         'fullName': fullName ?? trimmedUsername,
         'createdAt': DateTime.now().toIso8601String(),
-        'bio': 'New user',
+        'bio': 'Bio', 
         'followers': 0,
         'following': 0,
         'profilePicture': null,

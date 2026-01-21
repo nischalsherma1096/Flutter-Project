@@ -38,8 +38,12 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: LoginWrapper(), 
+      home: LoginWrapper(),
       debugShowCheckedModeBanner: false,
+      
+      routes: {
+        '/login': (context) => LoginScreen(),
+      },
     );
   }
 }
@@ -50,10 +54,9 @@ class LoginWrapper extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
-    // Check if user is authenticated
-    final isAuthenticated = _storage.read('isAuthenticated') ?? false;
     
-    // Show login screen if not authenticated, otherwise show main screen
+    final isAuthenticated = _storage.read('isAuthenticated') ?? false;
+  
     if (isAuthenticated) {
       return MainNavigationScreen();
     } else {

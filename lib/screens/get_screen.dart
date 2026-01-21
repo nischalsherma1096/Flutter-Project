@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:get_storage/get_storage.dart';
 import '../utils/post.api.dart';
 import '../model/post_model.dart';
 import 'profile/profile_screen.dart';
@@ -17,6 +18,7 @@ class GetScreen extends StatefulWidget {
 class _GetScreenState extends State<GetScreen> {
   List<PostModel> posts = [];
   bool isLoading = true;
+  final GetStorage _storage = GetStorage();
   
   @override
   void initState() {
@@ -26,9 +28,17 @@ class _GetScreenState extends State<GetScreen> {
 
   Future<void> fetchPosts() async {
     try {
-      final fetchedPosts = await PostApi().getPosts();
+      // Get API posts
+      final apiPosts = await PostApi().getPosts();
+      
+      // Get local user posts
+      final localPosts = _getLocalPosts();
+      
+      // Combine both lists - local posts first, then API posts
+      final allPosts = [...localPosts, ...apiPosts];
+      
       setState(() {
-        posts = fetchedPosts;
+        posts = allPosts;
         isLoading = false;
       });
       
@@ -38,9 +48,53 @@ class _GetScreenState extends State<GetScreen> {
       }
     } catch (e) {
       print('Error: $e');
+      
+      final localPosts = _getLocalPosts();
       setState(() {
+        posts = localPosts;
         isLoading = false;
       });
+      
+      if (widget.onPostsLoaded != null) {
+        widget.onPostsLoaded!(localPosts);
+      }
+    }
+  }
+
+  List<PostModel> _getLocalPosts() {
+    try {
+      final posts = _storage.read('my_posts') ?? [];
+      
+      return posts.map((postData) {
+        final userName = postData['user']['name'] ?? 'You';
+        final userBio = postData['user']['bio'] ?? '';
+        final profilePicture = postData['user']['localProfilePicture'];
+        
+        final user = UserModel(
+          id: 'current_user',
+          name: userName,
+          bio: userBio,
+          localProfilePicture: profilePicture,
+        );
+        
+        return PostModel(
+          id: postData['id'] ?? '',
+          user: user,
+          content: postData['content'] ?? '',
+          hashtags: List<String>.from(postData['hashtags'] ?? []),
+          imageUrl: postData['hasImage'] == true && postData['imageData'] != null 
+              ? 'data:image/jpeg;base64,${postData['imageData']}' 
+              : null,
+          likes: postData['likes'] ?? 0,
+          isLiked: postData['isLiked'] ?? false,
+          comments: (postData['comments'] as List?)
+              ?.map((comment) => CommentModel.fromJson(comment))
+              .toList() ?? [],
+        );
+      }).toList();
+    } catch (e) {
+      print('Error getting local posts: $e');
+      return [];
     }
   }
 
@@ -144,7 +198,7 @@ class _GetScreenState extends State<GetScreen> {
                               MaterialPageRoute(
                                 builder: (context) => PostDetailScreen(
                                   post: post,
-                                  isLocalPost: false,
+                                  isLocalPost: post.user.id == 'current_user',
                                   onPostUpdated: fetchPosts,
                                 ),
                               ),
@@ -229,7 +283,7 @@ class _GetScreenState extends State<GetScreen> {
                                       ),
                                       SizedBox(width: 24),
                                       GestureDetector(
-                                        onTap: () => _showComments(post.comments, post.id, false),
+                                        onTap: () => _showComments(post.comments, post.id, post.user.id == 'current_user'),
                                         child: Row(
                                           children: [
                                             Icon(Icons.comment_outlined, color: Colors.grey[600], size: 24),

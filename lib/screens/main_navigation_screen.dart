@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:postly/services/auth_service.dart';
 import 'get_screen.dart';
 import 'post_screen.dart';
 import 'search/search_screen.dart';
@@ -77,6 +78,35 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     _loadProfilePicture();
   }
 
+  // CHANGED: Added logout function
+  void _logout() async {
+    final confirmed = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Logout'),
+        content: Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Logout', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed == true) {
+      final authService = AuthService();
+      await authService.logout();
+      
+      // Navigate back to login screen
+      Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
+
   Widget _buildProfileIcon(String name, {double size = 40, Uint8List? profilePicture}) {
     final colors = [Colors.blue, Colors.green, Colors.purple, Colors.orange, Colors.red];
     final colorIndex = name.hashCode % colors.length;
@@ -131,13 +161,41 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               title: Text('POSTLY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
               centerTitle: true,
               actions: [
-                Padding(
-                  padding: EdgeInsets.only(right: 16),
-                  child: IconButton(
-                    icon: Icon(Icons.menu),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Menu coming soon!')));
-                    },
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'logout') {
+                      _logout();
+                    } else if (value == 'settings') {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Settings coming soon!'))
+                      );
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'settings',
+                      child: Row(
+                        children: [
+                          Icon(Icons.settings, size: 20),
+                          SizedBox(width: 8),
+                          Text('Settings'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'logout',
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout, size: 20, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Logout', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 16),
+                    child: Icon(Icons.menu),
                   ),
                 ),
               ],

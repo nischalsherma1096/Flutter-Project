@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../model/post_model.dart';
 import '../post_screen_details.dart';
+import '../profile/profile_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   final List<PostModel> allPosts;
@@ -34,18 +35,32 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() {
       _isSearching = true;
       
-      // Convert query to lowercase for case-insensitive search
+      
       final searchQuery = query.toLowerCase().trim();
       
-      // Filter posts by hashtags
+      
       _filteredPosts = widget.allPosts.where((post) {
-        // Check if any hashtag contains the search query
-        return post.hashtags.any((hashtag) => 
+        
+        final hasHashtagMatch = post.hashtags.any((hashtag) => 
           hashtag.toLowerCase().contains(searchQuery)
         );
+        
+        
+        final hasContentMatch = post.content.toLowerCase().contains(searchQuery);
+        
+        
+        final hasUserMatch = post.user.name.toLowerCase().contains(searchQuery);
+        
+        
+        final hasBioMatch = post.user.bio != null && 
+            post.user.bio!.toLowerCase().contains(searchQuery);
+        
+       
+        return hasHashtagMatch || hasContentMatch || hasUserMatch || hasBioMatch;
       }).toList();
     });
   }
+  
   
   Widget _buildPostItem(BuildContext context, PostModel post) {
     return Card(
@@ -55,43 +70,72 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // User info
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.blue,
-                  child: Icon(Icons.person, color: Colors.white),
-                ),
-                SizedBox(width: 10),
-                Text(
-                  post.user.name,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
+            
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProfileScreen(user: post.user),
+                  ),
+                );
+              },
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.blue,
+                    child: Icon(Icons.person, color: Colors.white),
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    post.user.name,
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
             SizedBox(height: 10),
-            
-            // Post content (limited preview)
-            Text(
-              post.content.length > 100 
-                ? '${post.content.substring(0, 100)}...' 
-                : post.content,
-              style: TextStyle(fontSize: 14),
-            ),
-            SizedBox(height: 8),
-            
-            // Hashtags
-            Wrap(
-              spacing: 6,
-              children: post.hashtags.map((hashtag) => Chip(
-                label: Text(
-                  hashtag,
-                  style: TextStyle(fontSize: 12),
-                ),
-                backgroundColor: Colors.blue[50],
-                labelStyle: TextStyle(color: Colors.blue[700]),
-                visualDensity: VisualDensity.compact,
-              )).toList(),
+
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PostDetailScreen(
+                      post: post,
+                      isLocalPost: false,
+                      onPostUpdated: () {},
+                    ),
+                  ),
+                );
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    post.content.length > 100 
+                      ? '${post.content.substring(0, 100)}...' 
+                      : post.content,
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  SizedBox(height: 8),
+                  
+                  
+                  if (post.hashtags.isNotEmpty)
+                    Wrap(
+                      spacing: 6,
+                      children: post.hashtags.map((hashtag) => Chip(
+                        label: Text(
+                          hashtag,
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        backgroundColor: Colors.blue[50],
+                        labelStyle: TextStyle(color: Colors.blue[700]),
+                        visualDensity: VisualDensity.compact,
+                      )).toList(),
+                    ),
+                ],
+              ),
             ),
             
             // Stats
@@ -130,7 +174,7 @@ class _SearchScreenState extends State<SearchScreen> {
             controller: _searchController,
             autofocus: true,
             decoration: InputDecoration(
-              hintText: 'Search hashtags (e.g., #flutter, #travel)...',
+              hintText: 'Search hashtags, content, users...',
               border: InputBorder.none,
               prefixIcon: Icon(Icons.search, color: Colors.grey),
               suffixIcon: _searchController.text.isNotEmpty
@@ -149,18 +193,16 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             
             textInputAction: TextInputAction.search,
-            onSubmitted: (value) {
-              // This triggers when user presses "enter/search" on keyboard
-              if (value.isNotEmpty) {
-                _searchPosts(value);
-              }
+            onChanged: (value) {
+              
+              _searchPosts(value);
             },
           ),
         ),
       ),
       body: Column(
         children: [
-          // Search tips
+          
           Container(
             padding: EdgeInsets.all(16),
             color: Colors.blue[50],
@@ -170,7 +212,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Type hashtags and press "search" button on keyboard',
+                    'Search by hashtags, post content, or user names',
                     style: TextStyle(color: Colors.blue[700], fontSize: 12),
                   ),
                 ),
@@ -194,7 +236,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             ),
                             SizedBox(height: 8),
                             Text(
-                              'Try searching for different hashtags',
+                              'Try searching for different keywords',
                               style: TextStyle(color: Colors.grey[500]),
                             ),
                           ],
@@ -204,27 +246,12 @@ class _SearchScreenState extends State<SearchScreen> {
                         itemCount: _filteredPosts.length,
                         itemBuilder: (context, index) {
                           final post = _filteredPosts[index];
-                          return GestureDetector(
-                            onTap: () {
-                              // Navigate to post detail screen
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PostDetailScreen(
-                                    post: post,
-                                    isLocalPost: false,
-                                    onPostUpdated: () {},
-                                  ),
-                                ),
-                              );
-                            },
-                            child: _buildPostItem(context, post),
-                          );
+                          return _buildPostItem(context, post);
                         },
                       )
                 : ListView(
                     children: [
-                      // Popular hashtags section
+                      
                       Padding(
                         padding: EdgeInsets.all(16),
                         child: Column(
@@ -270,7 +297,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                       ),
                       
-                      // Recent posts section
+                      
                       Padding(
                         padding: EdgeInsets.all(16),
                         child: Column(
@@ -285,22 +312,8 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                       ),
                       
-                      // Make recent posts clickable too
-                      ...widget.allPosts.take(3).map((post) => GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PostDetailScreen(
-                                post: post,
-                                isLocalPost: false,
-                                onPostUpdated: () {},
-                              ),
-                            ),
-                          );
-                        },
-                        child: _buildPostItem(context, post),
-                      )).toList(),
+                      
+                      ...widget.allPosts.take(3).map((post) => _buildPostItem(context, post)).toList(),
                     ],
                   ),
           ),

@@ -29,17 +29,31 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     super.initState();
     _loadMyPosts();
     _loadProfilePicture();
-    _loadUserInfo();
+    _loadUserInfo(); 
   }
 
+  
   void _loadUserInfo() {
     final userName = _storage.read('user_name') ?? 'You';
-    final userBio = _storage.read('user_bio') ?? 'Flutter Developer & Social Media Enthusiast';
+    final userBio = _storage.read('user_bio') ?? 'Bio'; 
     
     setState(() {
       _nameController.text = userName;
       _bioController.text = userBio;
     });
+  }
+
+  void _loadProfilePicture() {
+    final profileData = _storage.read('my_profile_picture');
+    if (profileData != null && profileData is String) {
+      try {
+        setState(() {
+          _profilePicture = base64Decode(profileData);
+        });
+      } catch (e) {
+        print('Error decoding profile picture: $e');
+      }
+    }
   }
 
   void _updatePostsWithNewUserInfo() {
@@ -79,19 +93,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     
     _storage.write('my_posts', updatedPosts);
     _loadMyPosts();
-  }
-
-  void _loadProfilePicture() {
-    final profileData = _storage.read('my_profile_picture');
-    if (profileData != null && profileData is String) {
-      try {
-        setState(() {
-          _profilePicture = base64Decode(profileData);
-        });
-      } catch (e) {
-        print('Error decoding profile picture: $e');
-      }
-    }
   }
 
   Future<void> _pickProfilePicture() async {
